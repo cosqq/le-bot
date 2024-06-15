@@ -5,10 +5,8 @@ import jwt
 import os
 import time
 
-load_dotenv()
 
-
-
+load_dotenv('conf/secrets.env')
 APP_ID = os.environ.get("APP_ID")
 PRIVATE_KEY = os.environ.get("PRIVATE_KEY", "")
 

@@ -2,24 +2,35 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 import httpx
 import string
-from .utils import *
+from utils import *
 import logging 
 from LLM import start_ray_inferencing, LLM
 logger = logging.getLogger(__name__)
 import ray 
 from dotenv import load_dotenv
 
-### place holders to figure out 
-headers = {
-    "Authorization": f"token {installation_access_token}",
-    "User-Agent": "docu-mentor-bot",
-    "Accept": "application/vnd.github.VERSION.diff",
-}
-
-
 class Processer: 
     async def handle_webhook(self, request:Request):
         data = await request.json()
+
+        installation = data.get("installation")
+        if installation and installation.get("id"):
+            installation_id = installation.get("id")
+            logger.info(f"Installation ID: {installation_id}")
+
+            JWT_TOKEN = generate_jwt()
+
+            installation_access_token = await get_installation_access_token(
+                JWT_TOKEN, installation_id
+            )
+
+            headers = {
+                "Authorization": f"token {installation_access_token}",
+                "User-Agent": "docu-mentor-bot",
+                "Accept": "application/vnd.github.VERSION.diff",
+            }
+        else:
+            raise ValueError("No app installation found.")
 
         # Ensure PR exists and is opened
         if "pull_request" in data.keys() and ( data["action"] in ["opened", "reopened"] ):
