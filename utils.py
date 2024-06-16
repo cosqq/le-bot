@@ -1,24 +1,27 @@
 import base64
 import httpx
-from dotenv import load_dotenv
 import jwt
-import os
 import time
+from constants import *
 
 
-load_dotenv('conf/secrets.env')
-APP_ID = os.environ.get("APP_ID")
-PRIVATE_KEY = os.environ.get("PRIVATE_KEY", "")
+def generate_git_jwt_token():
+    print ("APP_ID IS: ", APP_ID)
+    print ("PRIV_KEY IS:", PRIVATE_KEY)
 
-# with open('private-key.pem', 'r') as f:
-#     PRIVATE_KEY = f.read()
+    try:
+        with open(PRIVATE_KEY_PATH, 'r') as f:
+            tmp = f.read()
+            print ("", tmp)
+    except:
+        pass
 
-def generate_jwt():
     payload = {
         "iat": int(time.time()),
         "exp": int(time.time()) + (10 * 60),
         "iss": APP_ID,
     }
+
     if PRIVATE_KEY:
         jwt_token = jwt.encode(payload, PRIVATE_KEY, algorithm="RS256")
         return jwt_token
@@ -26,7 +29,7 @@ def generate_jwt():
 
 
 async def get_installation_access_token(jwt, installation_id):
-    url = f"https://api.github.com/app/installations/{installation_id}/access_tokens"
+    url = f"{GIT_API_URL}app/installations/{installation_id}/access_tokens"
     headers = {
         "Authorization": f"Bearer {jwt}",
         "Accept": "application/vnd.github.v3+json",
@@ -48,7 +51,7 @@ async def get_branch_files(pr, branch, headers):
     original_url = pr.get("url")
     parts = original_url.split("/")
     owner, repo = parts[-4], parts[-3]
-    url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/{branch}?recursive=1"
+    url = f"{GIT_API_URL}repos/{owner}/{repo}/git/trees/{branch}?recursive=1"
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)
         tree = response.json().get('tree', [])
@@ -69,7 +72,7 @@ async def get_pr_head_branch(pr, headers):
     original_url = pr.get("url")
     parts = original_url.split("/")
     owner, repo, pr_number = parts[-4], parts[-3], parts[-1]
-    url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}"
+    url = f"{GIT_API_URL}/repos/{owner}/{repo}/pulls/{pr_number}"
 
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)

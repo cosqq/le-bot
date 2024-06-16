@@ -4,12 +4,23 @@ import httpx
 import string
 from utils import *
 import logging 
-from LLM import start_ray_inferencing, LLM
-logger = logging.getLogger(__name__)
+from LLM import LLM
 import ray 
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
+
+logger = logging.getLogger(__name__)
+
 
 class Processer: 
+    def __init__(self):
+        self.model = LLM()
+
+    def load_env(self):
+        print (os.environ.get("SECRET_FILE_PATH"))
+        print (find_dotenv())
+        load_dotenv(os.environ.get("SECRET_FILE_PATH"))
+        print (os.environ.get("APP_ID"))
+
     async def handle_webhook(self, request:Request):
         data = await request.json()
 
@@ -18,16 +29,16 @@ class Processer:
             installation_id = installation.get("id")
             logger.info(f"Installation ID: {installation_id}")
 
-            JWT_TOKEN = generate_jwt()
-
+            JWT_TOKEN = generate_git_jwt_token()
+            
             installation_access_token = await get_installation_access_token(
                 JWT_TOKEN, installation_id
             )
 
             headers = {
                 "Authorization": f"token {installation_access_token}",
-                "User-Agent": "docu-mentor-bot",
-                "Accept": "application/vnd.github.VERSION.diff",
+                "User-Agent": "le-bot",
+                "Accept": "application/vnd.github+json",
             }
         else:
             raise ValueError("No app installation found.")
@@ -89,18 +100,27 @@ class Processer:
                                 if any(sub in k for sub in files_to_keep)
                             }
 
-                        # required env
-                        load_dotenv('../conf/secrets.env')
-                        model_id = os.environ.get("JOB_ID")
-                        mistral_api_key = os.environ.get("MISTRAL_API_KEY")
-
-
-                        # Get suggestions from Docu Mentor
                         content, model, prompt_tokens, completion_tokens = \
-                            start_ray_inferencing(content=context_files, model_id=model_id, mistral_api_key=mistral_api_key) if ray.is_initialized() else LLM(model_id=model_id, mistral_api_key=mistral_api_key).mentor(content=context_files)
-                            
-                        
-
-
+                            self.start_ray_inferencing(content=context_files) if ray.is_initialized() else self.model.mentor(content=context_files)
 
         return JSONResponse(content={}, status_code=200)
+
+
+    def start_ray_inferencing(self, content):
+
+        futures = [self.model.ray_mentor(content=v) for v in content.values()]
+        suggestions = ray.get(futures)
+
+        content = {k: v[0] for k, v in zip(content.keys(), suggestions)}
+        models = (v[1] for v in suggestions)
+        prompt_tokens = sum(v[2] for v in suggestions)
+        completion_tokens = sum(v[3] for v in suggestions)
+        print_content = ""
+        for k, v in content.items():
+            print_content += f"{k}:\n\t{v}\n\n"
+            
+        logger.info(print_content)
+
+        # TODO: fix models function
+        return print_content, models, prompt_tokens, completion_tokens
+

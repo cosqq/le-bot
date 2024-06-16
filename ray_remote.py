@@ -1,7 +1,7 @@
 from mistralai.models.chat_completion import ChatMessage
-import os
 from mistralai.client import MistralClient
 from dotenv import load_dotenv
+import os
 import ray
 import logging
 
@@ -44,33 +44,4 @@ try:
     ray.init()
 except:
     logger.info("Ray init failed.")
-
-
-@ray.remote
-def mentor_task(content):
-    return mentor(content=content)
-
-
-def ray_mentor(content: dict,model_id:str,):
-    load_dotenv('../conf/s.env')
-    api_key = os.environ.get("MISTRAL_API_KEY")
-
-    messages = get_prompt(content)
-    futures = [mentor_task.remote(content=v, model_id=model_id, messages=messages, api_key=api_key)for v in content.values()]
-
-    suggestions = ray.get(futures)
-    content = {k: v[0] for k, v in zip(content.keys(), suggestions)}
-    models = (v[1] for v in suggestions)
-    prompt_tokens = sum(v[2] for v in suggestions)
-    completion_tokens = sum(v[3] for v in suggestions)
-
-
-    print_content = ""
-    for k, v in content.items():
-        print_content += f"{k}:\n\t\{v}\n\n"
-        
-    logger.info(print_content)
-
-    return print_content, models[0], prompt_tokens, completion_tokens
-
 
