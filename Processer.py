@@ -1,34 +1,35 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
-import httpx
-import string
-import logging 
-from LLM import LLM
-import ray 
 from dotenv import find_dotenv, load_dotenv
-import os
-logger = logging.getLogger(__name__)
+from constants import *
+from LLM import LLM
+import httpx, string, os
+import logging 
+import ray 
 
 
-### place holders to figure out 
-# headers = {
-#     "Authorization": f"token {installation_access_token}",
-#     "User-Agent": "docu-mentor-bot",
-#     "Accept": "application/vnd.github.VERSION.diff",
-# }
-
+logger = logging.getLogger("ray")
 
 class Processer: 
     def __init__(self):
-        self.model = LLM()
+        logger.info("PROCESSOR ----| Processor initialized")
+        pass
 
     def load_env(self):
-        print (os.environ.get("SECRET_FILE_PATH"))
-        print (find_dotenv())
-        load_dotenv(os.environ.get("SECRET_FILE_PATH"))
-        print (os.environ.get("APP_ID"))
+        logger.info("PROCESSOR ----| Secrets is loading")
+
+        secret_path=SECRET_PATH
+        load_dotenv(os.environ.get("SECRET_FILE_PATH")) if not secret_path else load_dotenv(secret_path)
+
+        self.mistral_api_key = os.environ.get("MISTRAL_API_KEY", "")
+        self.model_id = os.environ.get("JOB_ID")
+
+        logger.info("PROCESSOR ----| Secrets is loaded")
+
 
     async def handle_webhook(self, request:Request):
+
+        logger.info("PROCESSOR ----| handling github webhook request")
         data = await request.json()
 
         installation = data.get("installation")
@@ -110,24 +111,36 @@ class Processer:
                         content, model, prompt_tokens, completion_tokens = \
                             self.start_ray_inferencing(content=context_files) if ray.is_initialized() else self.model.mentor(content=context_files)
 
+        logger.info("PROCESSOR ----| Github content processed")
         return JSONResponse(content={}, status_code=200)
 
 
-    def start_ray_inferencing(self, content):
+    def ray_mentor(self, prompt_contents=None, git_pay_load=None,):
+        logger.info("PROCESSOR ----| handling github webhook request with ray mentor")
 
-        futures = [self.model.ray_mentor(content=v) for v in content.values()]
-        suggestions = ray.get(futures)
-
-        content = {k: v[0] for k, v in zip(content.keys(), suggestions)}
-        models = (v[1] for v in suggestions)
-        prompt_tokens = sum(v[2] for v in suggestions)
-        completion_tokens = sum(v[3] for v in suggestions)
-        print_content = ""
-        for k, v in content.items():
-            print_content += f"{k}:\n\t{v}\n\n"
+        # intiialize LLM
+        logger.info("PROCESSOR ----| Mistral LLM initialized")
+        len_content = len(git_pay_load) if git_pay_load else 1
+        llms = [LLM.remote(model_id=self.model_id, api_key=self.mistral_api_key) for i in range(len_content)] # init ray objects
+        
+        # generate results
             
-        logger.info(print_content)
+        logger.info("PROCESSOR ----| Mistral LLM is performing inferencing distributedly")
+        results = [llm.mentor.remote(prompt_content=prompt_contents[i]) for i, llm in enumerate(llms)] # run ray object functions 
+        futures = [ray.get(r) for r in results]
 
-        # TODO: fix models function
-        return print_content, models, prompt_tokens, completion_tokens
+        # collate results
+        logger.info("PROCESSOR ----| Processing Mistral LLM content returned")
+        corrections_chat_response = "\n".join([f['chat_response'] for f in futures])
+        prompt_tokens = sum(f['chat_prompt_tokens'] for f in futures)
+        completion_tokens = sum(f['chat_completion_tokens'] for f in futures)
+        model_id = futures[0]['model_id']
+
+        logger.info("PROCESSOR ----| Processing done, content returning ...")
+        return {
+            "chat_responses" :corrections_chat_response,
+            "model_id":model_id,
+            "total_prompt_tokens_used":prompt_tokens,
+            "total_completion_tokens_used":completion_tokens
+        }
 

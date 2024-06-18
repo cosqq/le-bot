@@ -25,7 +25,7 @@ def get_prompt(content):
                                                     \n Don't comment on file names or other meta data, just the actual text.
                                                     \n The {content} will be in JSON format and contains file name keys and text values. Make sure to give very concise feedback per file.
                                             """
-                                    )
+                                            )
 
     return [system_message, user_message]
 
