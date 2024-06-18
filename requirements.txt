@@ -3,3 +3,4 @@ ray[serve]
 mistralai
 pandas
 typing
+ray

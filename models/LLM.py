@@ -1,7 +1,5 @@
 from mistralai.models.chat_completion import ChatMessage
 from mistralai.client import MistralClient
-from dotenv import find_dotenv, load_dotenv
-import os
 import ray
 import logging
 

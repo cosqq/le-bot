@@ -5,9 +5,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from ray import serve
 from utility.utils import extract_invalid_code_snippet
-from constants import *
-from Processer import Processer
-from rich.logging import RichHandler
+from utility.constants import *
+from utility.Processer import Processer
 
 
 app = FastAPI()
@@ -48,7 +47,7 @@ class ApiServer:
             contents = [extract_invalid_code_snippet(i['messages'][0]['content']) for i in contents]
 
             logger.info("FASTAPI ---| Content is read and loaded for inferencing")
-            # mistral_output = processor.ray_mentor(prompt_contents=contents)
+            # mistral_output = processor.ray_mentor(prompt_contents=contents) # uncomment to run llm
 
         except Exception as e:
             logger.error(f"FASTAPI ---| Exception on inferencing{e}", )

@@ -1,5 +1,6 @@
 __pycache__
 conf/*
 .env
-constants.py
-
+*/constants.py
+data/*
+logs/*
