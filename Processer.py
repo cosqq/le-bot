@@ -2,13 +2,20 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 import httpx
 import string
-from utils import *
 import logging 
 from LLM import LLM
 import ray 
 from dotenv import find_dotenv, load_dotenv
-
+import os
 logger = logging.getLogger(__name__)
+
+
+### place holders to figure out 
+# headers = {
+#     "Authorization": f"token {installation_access_token}",
+#     "User-Agent": "docu-mentor-bot",
+#     "Accept": "application/vnd.github.VERSION.diff",
+# }
 
 
 class Processer: 
