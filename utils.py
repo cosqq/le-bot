@@ -6,15 +6,6 @@ from constants import *
 
 
 def generate_git_jwt_token():
-    print ("APP_ID IS: ", APP_ID)
-    print ("PRIV_KEY IS:", PRIVATE_KEY)
-
-    try:
-        with open(PRIVATE_KEY_PATH, 'r') as f:
-            tmp = f.read()
-            print ("", tmp)
-    except:
-        pass
 
     payload = {
         "iat": int(time.time()),
@@ -23,7 +14,10 @@ def generate_git_jwt_token():
     }
 
     if PRIVATE_KEY:
+        print ("PRIV_KEY IS:", PRIVATE_KEY)
+        
         jwt_token = jwt.encode(payload, PRIVATE_KEY, algorithm="RS256")
+        print (jwt_token)
         return jwt_token
     raise ValueError("PRIVATE_KEY not found.")
 
