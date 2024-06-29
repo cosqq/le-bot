@@ -49,13 +49,10 @@ class Processer:
 
                 })
 
-            print (processed_pr_file_diff)
 
         #                 content, model, prompt_tokens, completion_tokens = \
-        #                     self.start_ray_inferencing(content=context_files) if ray.is_initialized() else self.model.mentor(content=context_files)
-
-
-        return JSONResponse(content={}, status_code=200)
+        #                      self.start_ray_inferencing(content=context_files) if ray.is_initialized() else self.model.mentor(content=context_files)
+            response = post_pr_comment(pr, headers)
 
         return JSONResponse(content={}, status_code=200)
 
