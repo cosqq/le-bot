@@ -41,14 +41,14 @@ async def get_pr_file_diff(pr, headers):
         return response
 
 # Update PR with comments
-async def post_pr_comment(pr, headers):
+async def post_pr_comment(pr, headers, llm_response):
 
     headers["Accept"] = "application/vnd.github.raw+json"
 
     async with httpx.AsyncClient() as client:
         response = await client.post(
             f"{pr['issue_url']}/comments",
-            json={"body": "THIS WILL BE THE RESPONSE FROM LLM MODEL"},
+            json={"body": llm_response},
             headers=headers,
         )
         return response
