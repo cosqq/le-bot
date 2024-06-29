@@ -4,3 +4,4 @@ conf/*
 */constants.py
 data/*
 logs/*
+test.py
