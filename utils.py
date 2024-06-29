@@ -1,127 +1,41 @@
-import base64
 import httpx
 import jwt
 import time
 from constants import *
 
-
 def generate_git_jwt_token():
-
     payload = {
         "iat": int(time.time()),
         "exp": int(time.time()) + (10 * 60),
         "iss": APP_ID,
     }
 
-    if PRIVATE_KEY:
-        print ("PRIV_KEY IS:", PRIVATE_KEY)
-        
+    if PRIVATE_KEY:        
         jwt_token = jwt.encode(payload, PRIVATE_KEY, algorithm="RS256")
-        print (jwt_token)
         return jwt_token
     raise ValueError("PRIVATE_KEY not found.")
 
 
-async def get_installation_access_token(jwt, installation_id):
-    url = f"{GIT_API_URL}app/installations/{installation_id}/access_tokens"
+async def get_installation_access_token(token, installation_id):
+    url = f"{GIT_API_URL}/app/installations/{installation_id}/access_tokens"
     headers = {
-        "Authorization": f"Bearer {jwt}",
+        "Authorization": f"Bearer {token}",
+        "User-Agent": "le-bot",
         "Accept": "application/vnd.github.v3+json",
     }
     async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers)
         return response.json()["token"]
 
-
-def get_diff_url(pr):
-    """GitHub 302s to this URL."""
+async def get_pr_file_diff(pr, headers):
     original_url = pr.get("url")
     parts = original_url.split("/")
     owner, repo, pr_number = parts[-4], parts[-3], parts[-1]
-    return f"https://patch-diff.githubusercontent.com/raw/{owner}/{repo}/pull/{pr_number}.diff"
 
+    url  = f"{GIT_API_URL}/repos/{owner}/{repo}/pulls/{pr_number}/files"
 
-async def get_branch_files(pr, branch, headers):
-    original_url = pr.get("url")
-    parts = original_url.split("/")
-    owner, repo = parts[-4], parts[-3]
-    url = f"{GIT_API_URL}repos/{owner}/{repo}/git/trees/{branch}?recursive=1"
-    async with httpx.AsyncClient() as client:
+    headers["Accept"] = "application/vnd.github.raw+json"
+
+    async with httpx.AsyncClient() as client:   
         response = await client.get(url, headers=headers)
-        tree = response.json().get('tree', [])
-        files = {}
-        for item in tree:
-            if item['type'] == 'blob':
-                file_url = item['url']
-                print(file_url)
-                file_response = await client.get(file_url, headers=headers)
-                content = file_response.json().get('content', '')
-                # Decode the base64 content
-                decoded_content = base64.b64decode(content).decode('utf-8')
-                files[item['path']] = decoded_content
-        return files
-
-
-async def get_pr_head_branch(pr, headers):
-    original_url = pr.get("url")
-    parts = original_url.split("/")
-    owner, repo, pr_number = parts[-4], parts[-3], parts[-1]
-    url = f"{GIT_API_URL}/repos/{owner}/{repo}/pulls/{pr_number}"
-
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url, headers=headers)
-
-        # Check if the response is successful
-        if response.status_code != 200:
-            print(f"Error: Received status code {response.status_code}")
-            print("Response body:", response.text)
-            return ''
-
-        # Safely get the 'ref'
-        data = response.json()
-        head_data = data.get('head', {})
-        ref = head_data.get('ref', '')
-        return ref
-
-
-def files_to_diff_dict(diff):
-    files_with_diff = {}
-    current_file = None
-    for line in diff.split("\n"):
-        if line.startswith("diff --git"):
-            current_file = line.split(" ")[2][2:]
-            files_with_diff[current_file] = {"text": []}
-        elif line.startswith("+") and not line.startswith("+++"):
-            files_with_diff[current_file]["text"].append(line[1:])
-    return files_with_diff
-
-
-def parse_diff_to_line_numbers(diff):
-    files_with_line_numbers = {}
-    current_file = None
-    line_number = 0
-    for line in diff.split("\n"):
-        if line.startswith("diff --git"):
-            current_file = line.split(" ")[2][2:]
-            files_with_line_numbers[current_file] = []
-            line_number = 0
-        elif line.startswith("@@"):
-            line_number = int(line.split(" ")[2].split(",")[0][1:]) - 1
-        elif line.startswith("+") and not line.startswith("+++"):
-            files_with_line_numbers[current_file].append(line_number)
-            line_number += 1
-        elif not line.startswith("-"):
-            line_number += 1
-    return files_with_line_numbers
-
-
-def get_context_from_files(files, files_with_line_numbers, context_lines=2):
-    context_data = {}
-    for file, lines in files_with_line_numbers.items():
-        file_content = files[file].split("\n")
-        context_data[file] = []
-        for line in lines:
-            start = max(line - context_lines, 0)
-            end = min(line + context_lines + 1, len(file_content))
-            context_data[file].append('\n'.join(file_content[start:end]))
-    return context_data
+        return response
