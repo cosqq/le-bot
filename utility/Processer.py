@@ -1,14 +1,22 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
-from dotenv import load_dotenv
-from utility.constants import *
 from models.LLM import LLM
-import httpx, string, os
 import logging 
 import ray 
-from utils import * 
 import os
-logger = logging.getLogger(__name__)
+
+from utility.utils import *
+import os
+
+from mistralai.models.chat_completion import ChatMessage
+from mistralai.client import MistralClient
+from constants import * 
+import ray
+import logging
+
+logger = logging.getLogger("ray")
+
+
 
 class Processer: 
     def __init__(self):
@@ -56,41 +64,67 @@ class Processer:
             
             llm_response_dict= self.ray_mentor(prompt_contents=processed_pr_file_diff)
 
-            print(llm_response_dict['chat_responses'])
-            await post_pr_comment(pr, headers, llm_response_dict['chat_responses'])
+            llm_response_formatted = str(llm_response_dict['chat_responses'])
+            await post_pr_comment(pr, headers, llm_response_formatted)
 
         logger.info("PROCESSOR ----| Github content processed")
         return JSONResponse(content={}, status_code=200)
 
 
-    def ray_mentor(self, prompt_contents=None):
+    def ray_mentor(self, prompt_contents):
         logger.info("PROCESSOR ----| handling github webhook request with ray mentor")
 
-        # intiialize LLM
-        logger.info("PROCESSOR ----| Mistral LLM initialized")
-        len_content = len(prompt_contents)
-        llms = [LLM.remote(model_id=MODEL_ID, api_key=MISTRAL_API_KEY) for i in range(len_content)] # init ray objects
-        
         # generate results
         logger.info("PROCESSOR ----| Mistral LLM is performing inferencing distributedly")
-        
-        results = [llm.mentor.remote(prompt_content=f"""
-                                   Path Information: { prompt_contents[i]['filePatch']}, content_path: {prompt_contents[i]['fileName'] }                   
-                                    """) for i, llm in enumerate(llms)] # run ray object functions 
-        futures = [ray.get(r) for r in results]
+
+        results = []
+        len_prompt_contents = 2 # len(prompt_contents)
+        for i in range(0, len_prompt_contents -1, 3):
+            prompt_formatted = f"Patch Information: {prompt_contents[i]['filePatch']}, content_path: {prompt_contents[i]['fileName'] }"
+            result = mentor.remote(prompt_formatted)
+            results.append(ray.get(result))
 
         # collate results
         logger.info("PROCESSOR ----| Processing Mistral LLM content returned")
-        corrections_chat_response = "\n".join([f['chat_response'] for f in futures])
-        prompt_tokens = sum(f['chat_prompt_tokens'] for f in futures)
-        completion_tokens = sum(f['chat_completion_tokens'] for f in futures)
-        model_id = futures[0]['model_id']
+        corrections_chat_response = "\n".join([f['chat_response'] for f in results])
 
         logger.info("PROCESSOR ----| Processing done, content returning ...")
         return {
-            "chat_responses" :corrections_chat_response,
-            "model_id":model_id,
-            "total_prompt_tokens_used":prompt_tokens,
-            "total_completion_tokens_used":completion_tokens
+            "chat_responses" : corrections_chat_response,
         }
 
+@ray.remote
+def mentor(prompt_content):
+    # system_message = ChatMessage(role='system', 
+    #                                 content=f"""As an expert in coding, I can provide you with guidance, best practices, and insights on a wide range of programming languages and technologies. 
+    #                                 \n  I can help you write clean, efficient, and readable code, and offer suggestions to improve your overall code quality.
+    #                                 \n  Your main TASK is to Improve the CONTENT.
+    #                                 \n  1. Criticise syntax, grammar, punctuation, style, etc.
+    #                                 \n  2. Recommend common technical writing knowledge, such as used in Vale and the Google developer documentation style guide.
+    #                                 \n  3. If the content is good, don't comment on it. 
+    #                                 \n The CONTENT is {prompt_content}"""
+    #                             )
+
+    user_message = ChatMessage(role='user', content=f"""Provide concise feedback on the PATCH from Github.
+
+                                                \n Don't comment on file names or other meta data, just the actual text.
+                                                \n The {prompt_content} will be in JSON format and contains file name keys and text values. 
+                                        """)
+                                
+    messages = [user_message]
+
+    logger.info("LLM -----| Setting up Mistral LLM clients")
+    client = MistralClient(api_key=MISTRAL_API_KEY)
+
+    retrieved_job = client.jobs.retrieve(job_id=MODEL_ID if MODEL_ID else "")
+
+    logger.info("LLM -----| Mistral LLM mentor is performing inferencing ...")
+    chat_response = client.chat(
+        model=retrieved_job.fine_tuned_model,
+        messages=messages
+    )
+
+    logger.info("LLM -----| Mistral LLM mentor inferencing done, content returning ...")
+    return {
+        "chat_response":chat_response.choices[0].message.content
+    }

@@ -1,5 +1,6 @@
 from mistralai.models.chat_completion import ChatMessage
 from mistralai.client import MistralClient
+from constants import * 
 import ray
 import logging
 
@@ -7,15 +8,13 @@ logger = logging.getLogger("ray")
 
 @ray.remote
 class LLM(object):
-    def __init__(self, model_id, api_key):
+    def __init__(self,model_id, mistral_api_key):
         logger.info("LLM -----| Mistral LLM initialized")
         self.model_id = model_id
-        self.api_key = api_key
-    
-    
+        self.api_key = mistral_api_key
+        
+    @ray.remote
     def mentor(self, prompt_content):
-
-
         logger.info("LLM -----| Prepraring Prompt template ...")
         system_message = ChatMessage(role='system', content=f"""As an expert in coding, I can provide you with guidance, best practices, and insights on a wide range of programming languages and technologies. 
                                     \n  I can help you write clean, efficient, and readable code, and offer suggestions to improve your overall code quality.

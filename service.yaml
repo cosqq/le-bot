@@ -13,9 +13,8 @@ ray_serve_config:
           - typing
           - PyJWT
         env_vars: 
-          KEY: VALUE
         working_dir: .
-canary_percent: 100 # This field should only specified if you do a manual rollout
+ # canary_percent: 100 # This field should only specified if you do a manual rollout
 rollout_strategy: ROLLOUT # You may specify either ROLLOUT or IN_PLACE
 config:
   access:
