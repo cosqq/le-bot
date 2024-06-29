@@ -4,3 +4,4 @@ mistralai
 pandas
 typing
 PyJWT
+ray
