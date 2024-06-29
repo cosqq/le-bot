@@ -9,6 +9,6 @@ class Processer:
         # Ensure PR exists and is opened
         if "pull_request" in data.keys() and ( data["action"] in ["opened", "reopened"] ):
             pr = data.get("pull_request")   
-            print (pr)
+            print (data)
 
         return JSONResponse(content={}, status_code=200)
