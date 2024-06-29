@@ -3,7 +3,6 @@ import jwt
 import time
 from constants import *
 
-
 def generate_git_jwt_token():
     payload = {
         "iat": int(time.time()),
