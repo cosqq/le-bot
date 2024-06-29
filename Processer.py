@@ -10,6 +10,4 @@ class Processer:
         if "pull_request" in data.keys() and ( data["action"] in ["opened", "reopened"] ):
             pr = data.get("pull_request")   
 
-            print (pr)
-
         return JSONResponse(content={}, status_code=200)
