@@ -11,5 +11,6 @@ class Processer:
             pr = data.get("pull_request")   
 
             print (pr)
-            
+            print (data)
+
         return JSONResponse(content={}, status_code=200)
