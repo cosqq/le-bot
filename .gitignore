@@ -1,1 +1,7 @@
 __pycache__
+conf/*
+.env
+*/constants.py
+data/*
+logs/*
+test.py
