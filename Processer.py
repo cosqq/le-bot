@@ -55,13 +55,6 @@ class Processer:
         #                     self.start_ray_inferencing(content=context_files) if ray.is_initialized() else self.model.mentor(content=context_files)
 
 
-            # Update PR with comments
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    f"{pr['review_comments_url']}/comments",
-                    json={"body": "THIS WILL BE THE RESPONSE FROM LLM MODEL"},
-                    headers=headers,
-                )
         return JSONResponse(content={}, status_code=200)
 
         return JSONResponse(content={}, status_code=200)
