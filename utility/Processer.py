@@ -6,37 +6,15 @@ from models.LLM import LLM
 import httpx, string, os
 import logging 
 import ray 
-<<<<<<< HEAD:utility/Processer.py
-
-
-logger = logging.getLogger("ray")
-
-=======
 from utils import * 
 import os
 logger = logging.getLogger(__name__)
 
->>>>>>> 9be83e90d8764951e2aa384684c83dc5e4192d40:Processer.py
 class Processer: 
     def __init__(self):
         logger.info("PROCESSOR ----| Processor initialized")
         pass
 
-<<<<<<< HEAD:utility/Processer.py
-    def load_env(self):
-        logger.info("PROCESSOR ----| Secrets is loading")
-
-        secret_path=SECRET_PATH
-        load_dotenv(os.environ.get("SECRET_FILE_PATH")) if not secret_path else load_dotenv(secret_path)
-
-        self.mistral_api_key = os.environ.get("MISTRAL_API_KEY", "")
-        self.model_id = os.environ.get("JOB_ID")
-
-        logger.info("PROCESSOR ----| Secrets is loaded")
-
-
-=======
->>>>>>> 9be83e90d8764951e2aa384684c83dc5e4192d40:Processer.py
     async def handle_webhook(self, request:Request):
 
         logger.info("PROCESSOR ----| handling github webhook request")
