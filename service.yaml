@@ -1,0 +1,22 @@
+name: le-bot
+ray_serve_config:
+  http_options:
+    request_timeout_s: 5
+  applications:
+    - import_path: 'main:bot'
+      runtime_env:
+        pip:
+          - fastapi
+          - 'ray[serve]'
+          - mistralai
+          - pandas
+          - typing
+          - PyJWT
+        env_vars: 
+          KEY: VALUE
+        working_dir: .
+canary_percent: 100 # This field should only specified if you do a manual rollout
+rollout_strategy: ROLLOUT # You may specify either ROLLOUT or IN_PLACE
+config:
+  access:
+    use_bearer_token: False

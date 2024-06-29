@@ -1,2 +1,7 @@
 fastapi
 ray[serve]
+mistralai
+pandas
+typing
+PyJWT
+ray
