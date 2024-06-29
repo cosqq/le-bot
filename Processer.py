@@ -58,7 +58,7 @@ class Processer:
             # Update PR with comments
             async with httpx.AsyncClient() as client:
                 await client.post(
-                    f"{pr['issue_url']}/comments",
+                    f"{pr['review_comments_url']}/comments",
                     json={"body": "THIS WILL BE THE RESPONSE FROM LLM MODEL"},
                     headers=headers,
                 )
