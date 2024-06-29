@@ -1,1 +1,6 @@
 __pycache__
+data/evaluation_file.jsonl
+data/messages.jsonl
+data/test_file.jsonl
+data/training_file.jsonl
+utility/constants.py
