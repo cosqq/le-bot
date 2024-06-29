@@ -37,7 +37,7 @@ class Processer:
             raise ValueError("No app installation found.")
 
         # Ensure PR exists and is opened
-        if "pull_request" in data.keys() and ( data["action"] in ["created", "synchronize", "reopened"] ):
+        if "pull_request" in data.keys() and ( data["action"] in ["created","opened", "synchronize", "reopened"] ):
             pr = data.get("pull_request")
             pr_file_diff = await get_pr_file_diff(pr ,headers)
 
@@ -49,10 +49,10 @@ class Processer:
 
                 })
 
-            print ("I am updated.")
         #                 content, model, prompt_tokens, completion_tokens = \
         #                      self.start_ray_inferencing(content=context_files) if ray.is_initialized() else self.model.mentor(content=context_files)
-            response = await post_pr_comment(pr, headers)
+            
+            await post_pr_comment(pr, headers)
 
         return JSONResponse(content={}, status_code=200)
 
