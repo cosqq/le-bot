@@ -53,27 +53,30 @@ class Processer:
 
                 })
 
-        #                 content, model, prompt_tokens, completion_tokens = \
-        #                      self.start_ray_inferencing(content=context_files) if ray.is_initialized() else self.model.mentor(content=context_files)
             
-            await post_pr_comment(pr, headers)
+            llm_response_dict= self.ray_mentor(prompt_contents=processed_pr_file_diff)
+
+            print(llm_response_dict['chat_responses'])
+            await post_pr_comment(pr, headers, llm_response_dict['chat_responses'])
 
         logger.info("PROCESSOR ----| Github content processed")
         return JSONResponse(content={}, status_code=200)
 
 
-    def ray_mentor(self, prompt_contents=None, git_pay_load=None,):
+    def ray_mentor(self, prompt_contents=None):
         logger.info("PROCESSOR ----| handling github webhook request with ray mentor")
 
         # intiialize LLM
         logger.info("PROCESSOR ----| Mistral LLM initialized")
-        len_content = len(git_pay_load) if git_pay_load else 1
-        llms = [LLM.remote(model_id=self.model_id, api_key=self.mistral_api_key) for i in range(len_content)] # init ray objects
+        len_content = len(prompt_contents)
+        llms = [LLM.remote(model_id=MODEL_ID, api_key=MISTRAL_API_KEY) for i in range(len_content)] # init ray objects
         
         # generate results
-            
         logger.info("PROCESSOR ----| Mistral LLM is performing inferencing distributedly")
-        results = [llm.mentor.remote(prompt_content=prompt_contents[i]) for i, llm in enumerate(llms)] # run ray object functions 
+        
+        results = [llm.mentor.remote(prompt_content=f"""
+                                   Path Information: { prompt_contents[i]['filePatch']}, content_path: {prompt_contents[i]['fileName'] }                   
+                                    """) for i, llm in enumerate(llms)] # run ray object functions 
         futures = [ray.get(r) for r in results]
 
         # collate results
