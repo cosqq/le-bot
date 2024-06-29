@@ -37,11 +37,18 @@ class Processer:
             raise ValueError("No app installation found.")
 
         # Ensure PR exists and is opened
-        if "pull_request" in data.keys() and ( data["action"] in ["opened", "created", "edited", "reopened"] ):
+        if "pull_request" in data.keys() and ( data["action"] in ["created", "synchronize", "reopened"] ):
             pr = data.get("pull_request")
             pr_file_diff = await get_pr_file_diff(pr ,headers)
 
-            processed_pr_file_diff = [{"fileName" : d["filename"], "patch": d["patch"]} for d in pr_file_diff.json()]
+            processed_pr_file_diff = []
+            for file in pr_file_diff.json(): 
+                processed_pr_file_diff.append( {
+                        "fileName" : file["filename"], 
+                        "filePatch": file.get("patch", "")
+
+                })
+
             print (processed_pr_file_diff)
 
         #                 content, model, prompt_tokens, completion_tokens = \
