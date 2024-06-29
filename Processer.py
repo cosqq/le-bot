@@ -41,7 +41,6 @@ class Processer:
             pr = data.get("pull_request")
             pr_file_diff = await get_pr_file_diff(pr ,headers)
 
-
             processed_pr_file_diff = [{"fileName" : d["filename"], "patch": d["patch"]} for d in pr_file_diff.json()]
             print (processed_pr_file_diff)
 
